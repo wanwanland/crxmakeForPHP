@@ -18,9 +18,11 @@ function main($source_path , $make_path , $package_name, $key_path ){
 	$zip_path = $make_path.$zip;
 
 	#zip作成
-	filezip($source_path , $zip_path);
+	if(!filezip($source_path , $zip_path)){
+		throw new Exception("can't make zip file");
+		exit;
+	}
 
-#trap 'rm -f "$pub" "$sig" "$zip"' EXIT
 
 	#秘密鍵読み込み
 	$key_b = fopen($key_path , "rb");
@@ -41,12 +43,11 @@ function main($source_path , $make_path , $package_name, $key_path ){
 
 	$crmagic_hex="4372 3234"; # Cr24
 	$version_hex="0200 0000"; # 2
-	#echo $crmagic_hex;
+
 
 	$pub_len_hex = byte_swap(sprintf('%08x\n',strlen($pub_data)));
 	$sig_len_hex = byte_swap(sprintf('%08x\n',strlen($sig_data)));
-	#echo $crmagic_hex.$version_hex.$pub_len_hex.$sig_len_hex;
-	#echo binary($crmagic_hex.$version_hex.$pub_len_hex.$sig_len_hex);
+
 	mk_crx( $crx_path , $crmagic_hex , $version_hex , $pub_len_hex , $sig_len_hex , $pub_data , $sig_data , $zip_b);
 	unlink($pub_path);
 	unlink($zip_path);
@@ -64,18 +65,13 @@ function mk_crx($crx_path ,$crmagic_hex ,$version_hex,$pub_len_hex ,$sig_len_hex
 	}
 }
 
-# (
-#   echo "$crmagic_hex $version_hex $pub_len_hex $sig_len_hex" | xxd -r -p
-#   cat "$pub" "$sig" "$zip"
-# ) > "$crx"
-
 function mk_sig($zip_b,$pkeyid){
 	openssl_sign($zip_b, $signature, $pkeyid);
 	return $signature;
 }
 
 function mk_pub($pkeyid){
-# openssl rsa -pubout -outform DER < "$key" > "$pub" 2>/dev/null
+
 	$key_list = openssl_pkey_get_details($pkeyid);
 	$pubkey_pem = $key_list["key"];
 	#DER
@@ -88,10 +84,9 @@ function pem2der($pem_data) {
    $pem_data = substr($pem_data, strpos($pem_data, $begin)+strlen($begin));
    $pem_data = substr($pem_data, 0, strpos($pem_data, $end));
    $der = base64_decode($pem_data);
-   ##var_dump($der);
+
    return $der;
 }
-#openssl sha1 -sha1 -binary -sign "$key" < "$zip" > "$sig"
 function byte_swap($byte){
 	return substr($byte,6,2).substr($byte, 4,2).substr($byte, 2,2).substr($byte, 0,2);
 }
@@ -99,6 +94,7 @@ function binary($nubers){
 	$nuber = preg_replace("/ /" , "" , $nubers);
 	$binary = "";
 	$binary = pack("H*",$nuber);
+
 	return $binary;
 }
 
@@ -117,7 +113,7 @@ function filezip($sourcepath , $zip_path){
 		$zip->close();
 		chdir($pwd_path);
 	}else{
-		echo "errer";
+		return Flase;
 	}
 }
 function filelist($dir_path){

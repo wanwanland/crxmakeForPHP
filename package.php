@@ -2,7 +2,7 @@
 function main($source_path , $make_path , $package_name, $key_path ){
 	$make_path = trim($make_path);
 	#ディレクトリパスチェック
-	if(!preg_match("/\/$/", $make_path){
+	if(!preg_match("/\/$/", $make_path)){
 		$make_path = $make_path."/";
 	}
 
